@@ -1,8 +1,11 @@
 {
-  "name": "@zippy/mesh",
-  "version": "1.0.0",
-  "description": "Zippy Mesh - Standalone AI Routing & P2P Mesh",
-  "private": true,
+  "name": "zippymesh-router",
+  "version": "0.1.0-alpha",
+  "description": "ZippyMesh LLM Router - Multi-provider LLM routing with ZippyCoin integration",
+  "main": "server.js",
+  "bin": {
+    "zippymesh-router": "bin/zippymesh-router.js"
+  },
   "scripts": {
     "dev": "next dev -p 20128 --webpack",
     "build": "next build --webpack",
