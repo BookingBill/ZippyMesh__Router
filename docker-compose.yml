@@ -1,0 +1,178 @@
+version: '3.8'
+
+# ZippyMesh LLM Router (Alpha v0.1.0) — Docker Compose Configuration
+#
+# Quick start:
+#   docker-compose up -d
+#
+# View logs:
+#   docker-compose logs -f zippymesh
+#
+# Stop:
+#   docker-compose down
+#
+
+services:
+  zippymesh:
+    # Pre-built Docker image (no source code exposed)
+    image: bookingbill/zippymesh-router:v0.1.0-alpha
+    container_name: zippymesh-router
+
+    # Network: Localhost only by default (secure)
+    ports:
+      - "127.0.0.1:20128:20128"  # Local-only access (recommended)
+      # To expose externally (NOT recommended without reverse proxy):
+      # - "0.0.0.0:20128:20128"
+
+    # Environment configuration
+    environment:
+      # Core
+      NODE_ENV: production
+      ZIPPY_PORT: 20128
+      ZIPPY_NODE_NAME: ${ZIPPY_NODE_NAME:-zippymesh-alpha}
+
+      # API Keys (optional - set for Marketplace features)
+      # ZIPPY_API_KEY: ${ZIPPY_API_KEY:-}
+
+      # Database location (persisted via volume)
+      DATA_DIR: /app/data
+
+      # Disable Next.js telemetry
+      NEXT_TELEMETRY_DISABLED: 1
+
+    # Persistent data storage
+    volumes:
+      - zippymesh-data:/app/data
+
+    # Auto-restart on crash
+    restart: unless-stopped
+
+    # Health monitoring
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:20128/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "10"
+
+    # Security settings
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+
+    # Resource limits (adjust for your hardware)
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '1'
+          memory: 1G
+
+# Persistent volume for database
+volumes:
+  zippymesh-data:
+    driver: local
+
+# SECURITY & NETWORKING GUIDE
+#
+# Current setup: LOCALHOST ONLY (Secure for development)
+#
+# For external access, use one of these patterns:
+#
+# ===== Option 1: Reverse Proxy with TLS (Recommended) =====
+# 1. Install nginx or traefik on host
+# 2. Configure reverse proxy → localhost:20128
+# 3. Terminate TLS at proxy level
+# 4. Access via: https://zippymesh.example.com
+#
+# ===== Option 2: SSH Tunnel =====
+# From remote machine:
+#   ssh -L 20128:localhost:20128 user@zippymesh-host
+# Then use: http://localhost:20128/v1/chat/completions
+#
+# ===== Option 3: VPN Connection =====
+# 1. Set up VPN (WireGuard, Tailscale, etc.)
+# 2. Connect all clients to VPN
+# 3. Expose on local network only
+# 4. Access via VPN IP: http://10.x.x.x:20128
+#
+# Do NOT expose port 20128 directly to the internet!
+#
+# MARKETPLACE CONNECTION
+#
+# To enable advanced routing & provider networks:
+# 1. Sign up: https://marketplace.zippymesh.io (free)
+# 2. Get API key from dashboard
+# 3. Set ZIPPY_API_KEY environment variable:
+#    export ZIPPY_API_KEY=sk-your-key-here
+# 4. Restart container: docker-compose down && docker-compose up -d
+# 5. Access dashboard: http://localhost:20128/dashboard/marketplace
+#
+# INTEGRATION WITH OTHER SERVICES
+#
+# OpenClaw on same host:
+#   In openclaw.json:
+#   "baseUrl": "http://localhost:20128/v1"
+#
+# OpenClaw in Docker:
+#   Use service name:
+#   "baseUrl": "http://zippymesh:20128/v1"
+#
+# Kubernetes:
+#   Install via Helm chart (coming soon)
+#   Use: http://zippymesh.default.svc.cluster.local:20128
+#
+# MONITORING
+#
+# View status:
+#   docker-compose ps
+#
+# Watch logs in real-time:
+#   docker-compose logs -f zippymesh
+#
+# Check health:
+#   docker-compose ps  # Look for "healthy" in STATUS
+#
+# Monitor resources:
+#   docker stats zippymesh-router
+#
+# TROUBLESHOOTING
+#
+# Container won't start?
+#   docker-compose logs zippymesh
+#   Check disk space: docker volume ls
+#   Check ports: netstat -tlnp | grep 20128
+#
+# Connection refused?
+#   Check network: docker network ls
+#   Verify service is running: docker ps
+#   Test connection: curl http://localhost:20128/api/health
+#
+# Permission denied errors?
+#   Container runs as non-root (nodejs user 1001)
+#   Ensure volume is writable: chmod 755 /path/to/zippymesh-data
+#
+# PRODUCTION CHECKLIST
+#
+# Before deploying to production:
+# [ ] Use reverse proxy (nginx, traefik, etc.)
+# [ ] Enable TLS/SSL encryption
+# [ ] Set strong ZIPPY_API_KEY
+# [ ] Configure firewall rules
+# [ ] Enable health monitoring/alerts
+# [ ] Set up log aggregation
+# [ ] Regular backups of zippymesh-data volume
+# [ ] Review security documentation
+# [ ] Test failover/recovery procedures
