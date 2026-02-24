@@ -6,6 +6,12 @@
   "bin": {
     "zippymesh-router": "bin/zippymesh-router.js"
   },
+  "pkg": {
+    "assets": [
+      ".next/**/*",
+      "public/**/*"
+    ]
+  },
   "scripts": {
     "dev": "next dev -p 20128 --webpack",
     "build": "next build --webpack",
